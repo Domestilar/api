@@ -11,9 +11,8 @@ use App\Mail\CompletarCadastroMail;
 use App\Mail\CrediarioAprovadoMail;
 use App\Mail\CrediarioCadastroMail;
 use App\Mail\CrediarioValidacaoEmail;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Storage;
-use App\Models\AnexoCrediario;
 
 class CrediarioController extends BaseController
 {
@@ -53,6 +52,7 @@ class CrediarioController extends BaseController
     public function store(Request $request)
     {
         $data = $request->all();
+        $data['data_nascimento'] = Carbon::createFromFormat('d/m/Y', $request->data_nascimento)->format('Y-m-d');
         $validator = Validator::make($data, CrediarioStoreRequest::rules(), CrediarioStoreRequest::messages());
 
         if ($validator->fails()) {
