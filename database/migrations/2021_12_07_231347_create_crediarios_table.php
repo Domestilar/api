@@ -28,7 +28,7 @@ class CreateCrediariosTable extends Migration
             $table->string('telefone', 16)->nullable();
             $table->string('celular', 16);
             $table->string('foto_selfie_url');
-            $table->string('categoria_profissional', 50);
+            $table->string('categoria_profissional');
             $table->string('profissao')->nullable();
             $table->string('sexo', 40)->nullable();
             $table->string('nome_pai')->nullable();
