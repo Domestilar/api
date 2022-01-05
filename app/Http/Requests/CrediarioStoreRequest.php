@@ -11,7 +11,7 @@ class CrediarioStoreRequest {
             'email' => 'email|required|max:50',
             'data_nascimento' => 'required',
             'celular' => 'required|max:16',
-            'categoria_profissional' => 'required|max:50',
+            'categoria_profissional' => 'required',
         ];
     }
 
