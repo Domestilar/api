@@ -9,7 +9,7 @@ class AnexoCrediario extends Model
 {
     use HasFactory;
     protected $table = 'anexos_crediario';
-    protected $fillable = ['tipo', 'url', 'crediario_id', 'status'];
+    protected $fillable = ['tipo', 'url', 'crediario_id', 'status', 'motivo_rejeicao', 'notificado'];
 
     public function crediario()
     {

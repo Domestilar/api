@@ -25,9 +25,9 @@ class AnexoCrediarioController extends BaseController
         return $this->show($id);
     }
     
-    public function rejeitar($id)
+    public function rejeitar(Request $request, $id)
     {
-        $this->model->where('id', $id)->update(['status' => 'REJEITADO']);
+        $this->model->where('id', $id)->update(['status' => 'REJEITADO', 'motivo_rejeicao' => $request->motivo_rejeicao]);
         return $this->show($id);
     }
 }

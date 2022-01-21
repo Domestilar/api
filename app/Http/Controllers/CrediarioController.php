@@ -11,6 +11,7 @@ use App\Mail\CompletarCadastroMail;
 use App\Mail\CrediarioAprovadoMail;
 use App\Mail\CrediarioCadastroMail;
 use App\Mail\CrediarioValidacaoEmail;
+use App\Mail\RejeitarCrediarioMail;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
 
@@ -46,7 +47,7 @@ class CrediarioController extends BaseController
 
     public function visualizar($uuid)
     {
-        return $this->model->where('uuid', $uuid)->first();
+        return $this->model->with('anexos', 'rejeicoes')->where('uuid', $uuid)->first();
     }
 
     public function store(Request $request)
@@ -91,13 +92,13 @@ class CrediarioController extends BaseController
 
     public function show($id)
     {
-        return $this->model->with('referenciasPessoais')->find($id);
+        return $this->model->with('referenciasPessoais', 'anexos')->find($id);
     }
 
     public function validar($id)
     {
         $crediario = Crediario::find($id);
-        $data = ['status' => 'VALIDADO'];
+        $data = ['status' => 'VALIDADO', 'validado' => true];
         $crediario->update($data);
 
         Mail::to($crediario)->send(new CrediarioValidacaoEmail($crediario));
@@ -108,18 +109,21 @@ class CrediarioController extends BaseController
     {
         $data = $request->all();
         $crediario = Crediario::where('uuid', $uuid)->first();
+        if ($request->referencia_nome1) {
+            $crediario->referenciasPessoais()->create([
+                'nome' => $request->referencia_nome1,
+                'telefone' => $request->referencia_telefone1,
+                'ramal' => $request->referencia_ramal1,
+            ]);
+        }
 
-        $crediario->referenciasPessoais()->create([
-            'nome' => $request->referencia_nome1,
-            'telefone' => $request->referencia_telefone1,
-            'ramal' => $request->referencia_ramal1,
-        ]);
-
-        $crediario->referenciasPessoais()->create([
-            'nome' => $request->referencia_nome2,
-            'telefone' => $request->referencia_telefone2,
-            'ramal' => $request->referencia_ramal2,
-        ]);
+        if ($request->referencia_nome2) {
+            $crediario->referenciasPessoais()->create([
+                'nome' => $request->referencia_nome2,
+                'telefone' => $request->referencia_telefone2,
+                'ramal' => $request->referencia_ramal2,
+            ]);
+        }
 
         if ($request->file('contra_cheque_arquivo')) {
             if (count($request->allFiles()['contra_cheque_arquivo']) > 0) {
@@ -132,14 +136,6 @@ class CrediarioController extends BaseController
         if ($request->file('cartao_beneficio_arquivo')) {
             $upload = $this->uploadArquivo($request->cartao_beneficio_arquivo, 'anexos');
             $crediario->anexos()->create(['tipo' => 'CARTÃO BENEFICIÁRIO', 'url' => $upload['url_arquivo']]);
-        }
-        if ($request->file('cartao_beneficio_arquivo')) {
-            $upload = $this->uploadArquivo($request->cartao_beneficio_arquivo, 'anexos');
-            $crediario->anexos()->create(['tipo' => 'CARTÃO BENEFICIÁRIO', 'url' => $upload['url_arquivo']]);
-        }
-        if ($request->file('demonstrativo_pagamento_arquivo')) {
-            $upload = $this->uploadArquivo($request->demonstrativo_pagamento_arquivo, 'anexos');
-            $crediario->anexos()->create(['tipo' => 'DEMONSTRATIVO DE PAGAMENTO', 'url' => $upload['url_arquivo']]);
         }
         if ($request->file('demonstrativo_pagamento_arquivo')) {
             $upload = $this->uploadArquivo($request->demonstrativo_pagamento_arquivo, 'anexos');
@@ -162,7 +158,7 @@ class CrediarioController extends BaseController
             $crediario->anexos()->create(['tipo' => 'CONTRATO DE TRABALHO', 'url' => $upload['url_arquivo']]);
         }
         if ($request->file('carne_quitado_arquivo')) {
-            if (count($request->allFiles()['contra_cheque_arquivo']) > 0) {
+            if (count($request->allFiles()['carne_quitado_arquivo']) > 0) {
                 foreach ($request->allFiles()['carne_quitado_arquivo'] as $c) {
                     $upload = $this->uploadArquivo($c, 'anexos');
                     $crediario->anexos()->create(['tipo' => 'CARNÊ QUITADO', 'url' => $upload['url_arquivo']]);
@@ -173,13 +169,17 @@ class CrediarioController extends BaseController
             if (count($request->allFiles()['boleto_quitado_arquivo']) > 0) {
                 foreach ($request->allFiles()['boleto_quitado_arquivo'] as $c) {
                     $upload = $this->uploadArquivo($c, 'anexos');
-                    $crediario->anexos()->create(['tipo' => 'CARNÊ QUITADO', 'url' => $upload['url_arquivo']]);
+                    $crediario->anexos()->create(['tipo' => 'BOLETO QUITADO', 'url' => $upload['url_arquivo']]);
                 }
             }
         }
         if ($request->file('carteira_trabalho_arquivo')) {
             $upload = $this->uploadArquivo($request->carteira_trabalho_arquivo, 'anexos');
             $crediario->anexos()->create(['tipo' => 'CARTEIRA DE TRABALHO', 'url' => $upload['url_arquivo']]);
+        }
+        if ($request->file('carteira_cooperativa_arquivo')) {
+            $upload = $this->uploadArquivo($request->carteira_cooperativa_arquivo, 'anexos');
+            $crediario->anexos()->create(['tipo' => 'CARTEIRA DE COOPERATIVA', 'url' => $upload['url_arquivo']]);
         }
         if ($request->file('comprovante_rendimento_arquivo')) {
             $upload = $this->uploadArquivo($request->comprovante_rendimento_arquivo, 'anexos');
@@ -198,7 +198,29 @@ class CrediarioController extends BaseController
             $crediario->anexos()->create(['tipo' => 'CERTIDÃO CASAMENTO/UNIÃO ESTÁVEL', 'url' => $upload['url_arquivo']]);
         }
 
-        $crediario->update([$data, 'status' => 'AGUARDANDO APROVAÇÃO']);
+        if ($request->file('comprovante_residencia_arquivo')) {
+            $upload = $this->uploadArquivo($request->comprovante_residencia_arquivo, 'anexos');
+            $crediario->anexos()->create(['tipo' => 'COMPROVANTE DE RESIDENCIA', 'url' => $upload['url_arquivo']]);
+        }
+
+        if ($request->file('documento_foto_arquivo')) {
+            $upload = $this->uploadArquivo($request->documento_foto_arquivo, 'anexos');
+            $crediario->anexos()->create(['tipo' => 'DOCUMENTO COM FOTO', 'url' => $upload['url_arquivo']]);
+        }
+
+        if ($request->file('cpf_cnpj_arquivo')) {
+            $upload = $this->uploadArquivo($request->cpf_cnpj_arquivo, 'anexos');
+            $crediario->anexos()->create(['tipo' => 'CPF', 'url' => $upload['url_arquivo']]);
+        }
+
+        $crediario->rejeicoes()->delete();
+        $crediario->anexos()->where('status', 'REJEITADO')->delete();
+
+        if($crediario->validado == false){
+            $crediario->update([$data, 'status' => 'AGUARDANDO VALIDAÇÃO']);
+        }else{
+            $crediario->update([$data, 'status' => 'AGUARDANDO APROVAÇÃO']);
+        }
         Mail::to($crediario->email)->send(new CompletarCadastroMail($crediario));
     }
 
@@ -211,6 +233,23 @@ class CrediarioController extends BaseController
         return $data;
     }
 
+    public function rejeitar(Request $request, $id)
+    {
+        $crediario = Crediario::find($id);
+     
+        $data = ['status' => 'REJEITADO', 'motivo_rejeicao' => $request->motivo_rejeicao];
+        $crediario->update($data);
+
+        if (count($request->motivos_rejeicao) > 0) {
+            foreach ($request->motivos_rejeicao as $m) {
+                $crediario->rejeicoes()->create(['motivo' => $m]);
+            }
+        }
+
+        Mail::to($crediario->email)->send(new RejeitarCrediarioMail($crediario));
+        return $data;
+    }
+
     public function uploadArquivo($arquivo, $diretorio)
     {
         $name =  uniqid(date('HisYmd'));
@@ -220,5 +259,23 @@ class CrediarioController extends BaseController
         return [
             'url_arquivo' => env('API_URL') . "/storage/{$diretorio}/{$nameFile}"
         ];
+    }
+
+    public function consultaCPF()
+    {
+        $cpf = request()->query('cpf');
+
+        // dd($cpf);
+        
+        $cpf = $this->model->where('cpf_cnpj', $cpf)->first();
+        
+        if(!empty($cpf->id) && $cpf->status != 'REJEITADO'){
+            return [
+                'cadastrado' => true,
+                'message' => "O CPF informado já possuí cadastro com o status $cpf->status"
+            ];
+        }else {
+            return ['cadastrado' => false];
+        }
     }
 }

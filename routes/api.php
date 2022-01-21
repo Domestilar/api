@@ -33,12 +33,17 @@ Route::group([
 Route::post('crediario', 'CrediarioController@store');
 Route::post('crediario/{uuid}/completar-cadastro', 'CrediarioController@completar');
 Route::get('crediario/{uuid}/visualizar', 'CrediarioController@visualizar');
+Route::get('crediario/consulta-cpf', 'CrediarioController@consultaCPF');
 
 Route::group(['middleware' => 'auth:users'], function () {
     Route::resource('crediarios', 'CrediarioController');
     Route::post('crediario/{id}/validar', 'CrediarioController@validar');
     Route::post('crediario/{id}/aprovar', 'CrediarioController@aprovar');
+    Route::post('crediario/{id}/rejeitar', 'CrediarioController@rejeitar');
+
     Route::resource('anexos', 'AnexoCrediarioController');
     Route::post('anexo/{id}/aprovar', 'AnexoCrediarioController@aprovar');
     Route::post('anexo/{id}/rejeitar', 'AnexoCrediarioController@rejeitar');
+
+    Route::put('usuarios/{id}/update', 'UsuarioController@update');
 });

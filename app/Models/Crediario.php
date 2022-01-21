@@ -54,7 +54,10 @@ class Crediario extends Model
         'natureza_ocupacao_empresa',
         'tipo_comprovante_renda_empresa',
         'data_admissao_empresa',
-        'status'
+        'status',
+        'motivo_rejeicao',
+        'status',
+        'validado'
     ];
 
     public function referenciasPessoais()
@@ -65,5 +68,10 @@ class Crediario extends Model
     public function anexos()
     {
         return $this->hasMany(AnexoCrediario::class, 'crediario_id', 'id');
+    }
+
+    public function rejeicoes()
+    {
+        return $this->hasMany(RejeicoesCrediario::class, 'crediario_id', 'id');
     }
 }
